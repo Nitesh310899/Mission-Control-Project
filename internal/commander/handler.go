@@ -100,6 +100,35 @@ func (h *Handler) RenewToken(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
+func (h *Handler) IssueToken(w http.ResponseWriter, r *http.Request) {
+    var req struct {
+        SoldierID string `json:"soldier_id"`
+    }
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.SoldierID == "" {
+        http.Error(w, "Invalid request", http.StatusBadRequest)
+        return
+    }
+
+    token, err := GenerateToken(req.SoldierID)
+    if err != nil {
+        http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+        return
+    }
+
+    log.Printf("Issued token for soldier %s", req.SoldierID)
+
+    resp := struct {
+        Token     string `json:"token"`
+        ExpiresIn int    `json:"expires_in"` // seconds
+    }{
+        Token:     token,
+        ExpiresIn: 300, // 5 minutes for example
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(resp)
+}
+
 // func (h *Handler) RenewToken(w http.ResponseWriter, r *http.Request) {
 // 	// Soldier must provide current token as Bearer Authorization to prove identity
 // 	auth := r.Header.Get("Authorization")

@@ -1,27 +1,48 @@
 #!/bin/bash
-set -e
 
-API="http://localhost:8080"
+COMMANDER_URL="http://localhost:8080"
 
-echo "Submitting mission..."
-MISSION_ID=$(curl -s -X POST -H "Content-Type: application/json" -d '{"payload":"Automated Test Mission"}' $API/missions | jq -r '.mission_id')
-
-if [ -z "$MISSION_ID" ] || [ "$MISSION_ID" == "null" ]; then
-  echo "Failed to get mission_id from response"
-  exit 1
-fi
-
-echo "Mission ID: $MISSION_ID"
-
-for i in {1..30}; do
-  STATUS=$(curl -s $API/missions/$MISSION_ID | jq -r '.status')
-  echo "[$i] Status: $STATUS"
-  if [[ "$STATUS" == "COMPLETED" || "$STATUS" == "FAILED" ]]; then
-    echo "Mission finished with status: $STATUS"
-    exit 0
+# Submit 5 missions rapidly and record their IDs
+echo "Submitting 5 missions..."
+mission_ids=()
+for i in {1..5}; do
+  response=$(curl -s -X POST "$COMMANDER_URL/missions" -H "Content-Type: application/json" -d "{\"payload\":\"mission-$i\"}")
+  mission_id=$(echo "$response" | jq -r '.mission_id')
+  if [[ "$mission_id" == "null" || -z "$mission_id" ]]; then
+    echo "Failed to submit mission $i"
+    exit 1
   fi
-  sleep 1
+
+  echo "Mission $i submitted with ID: $mission_id"
+  mission_ids+=("$mission_id")
 done
 
-echo "Mission did not complete within expected time"
-exit 1
+echo
+echo "Polling mission statuses until all complete or failed..."
+
+all_done=false
+while [[ "$all_done" == "false" ]]; do
+  all_done=true
+  for id in "${mission_ids[@]}"; do
+    status=$(curl -s "$COMMANDER_URL/missions/$id" | jq -r '.status')
+    echo "Mission $id status: $status"
+    if [[ "$status" != "COMPLETED" && "$status" != "FAILED" ]]; then
+      all_done=false
+    fi
+  done
+  echo "-----------------------------------"
+  if [[ "$all_done" == "false" ]]; then
+    sleep 5
+  fi
+done
+
+echo "All missions completed or failed."
+
+echo
+echo "Waiting 90 seconds to verify token rotation logs in Soldier container..."
+echo "(Check logs in another terminal by running: docker-compose logs -f soldier)"
+
+sleep 90
+
+echo
+echo "Test completed. Please verify soldier logs show token rotation messages."

@@ -1,13 +1,15 @@
 package soldier
 
 import (
-	"encoding/json"
-	"errors"
-	"io/ioutil"
-	"log"
-	"net/http"
-	"sync"
-	"time"
+	"bytes"
+    "encoding/json"
+    "errors"
+    "fmt"
+    "io/ioutil"
+    "log"
+    "net/http"
+    "sync"
+    "time"
 )
 
 type TokenManager struct {
@@ -21,6 +23,39 @@ type TokenManager struct {
 	refreshCond *sync.Cond
 }
 
+// TokenResponse represents the token issuance response from Commander.
+type TokenResponse struct {
+    Token     string `json:"token"`
+    ExpiresIn int    `json:"expires_in"`
+}
+
+// GetInitialToken fetches a new token from Commander’s /tokens/issue endpoint.
+func GetInitialToken(commanderURL, soldierID string) (string, int, error) {
+    reqBody, err := json.Marshal(map[string]string{
+        "soldier_id": soldierID,
+    })
+    if err != nil {
+        return "", 0, err
+    }
+
+    client := &http.Client{Timeout: 5 * time.Second}
+    resp, err := client.Post(fmt.Sprintf("%s/tokens/issue", commanderURL), "application/json", bytes.NewBuffer(reqBody))
+    if err != nil {
+        return "", 0, err
+    }
+    defer resp.Body.Close()
+
+    if resp.StatusCode != http.StatusOK {
+        return "", 0, fmt.Errorf("token issuance failed with status %d", resp.StatusCode)
+    }
+
+    var tokenResp TokenResponse
+    if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
+        return "", 0, err
+    }
+
+    return tokenResp.Token, tokenResp.ExpiresIn, nil
+}
 func NewTokenManager(soldierID, renewURL string) *TokenManager {
 	tm := &TokenManager{
 		client:    &http.Client{Timeout: time.Second * 5},

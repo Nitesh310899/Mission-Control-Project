@@ -35,6 +35,8 @@ func main() {
 		}
 	})
 	http.HandleFunc("/tokens/renew", handler.RenewToken)
+	http.HandleFunc("/tokens/issue", handler.IssueToken)
+
 
 	port := os.Getenv("PORT")
 	if port == "" {

@@ -41,6 +41,7 @@ services:
     environment:
       - CONCURRENCY=5
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
-      - INITIAL_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzb2xkaWVyX2lkIjoic29sZGllci0xIiwic3ViIjoic29sZGllci0xIiwiZXhwIjoxNzYwMzY3MzExLCJpYXQiOjE3NjAzNjQzMTF9.sg2QJvH7TUu2mCNwNoqwLHgs0Sdz_pAkCNhjgI1l4G8
+    #  - INITIAL_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.
       - SOLDIER_ID=soldier-1
       - TOKEN_RENEW_URL=http://commander:8080/tokens/renew
+      - COMMANDER_URL=http://commander:8080
