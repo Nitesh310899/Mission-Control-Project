@@ -63,7 +63,6 @@ func (h *Handler) GetMissionStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) RenewToken(w http.ResponseWriter, r *http.Request) {
-	// Soldier must provide current token as Bearer Authorization to prove identity
 	auth := r.Header.Get("Authorization")
 	if auth == "" {
 		log.Printf("[RenewToken] Missing Authorization header")
@@ -87,11 +86,11 @@ func (h *Handler) RenewToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("Token rotation for soldier %s", claims.SoldierID) // Log rotation
+	log.Printf("Token rotation for soldier %s", claims.SoldierID)
 
 	resp := struct {
 		Token     string `json:"token"`
-		ExpiresIn int    `json:"expires_in"` // seconds
+		ExpiresIn int    `json:"expires_in"`
 	}{
 		Token:     newToken,
 		ExpiresIn: 30,
@@ -101,63 +100,30 @@ func (h *Handler) RenewToken(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) IssueToken(w http.ResponseWriter, r *http.Request) {
-    var req struct {
-        SoldierID string `json:"soldier_id"`
-    }
-    if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.SoldierID == "" {
-        http.Error(w, "Invalid request", http.StatusBadRequest)
-        return
-    }
+	var req struct {
+		SoldierID string `json:"soldier_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.SoldierID == "" {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
 
-    token, err := GenerateToken(req.SoldierID)
-    if err != nil {
-        http.Error(w, "Failed to generate token", http.StatusInternalServerError)
-        return
-    }
+	token, err := GenerateToken(req.SoldierID)
+	if err != nil {
+		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+		return
+	}
 
-    log.Printf("Issued token for soldier %s", req.SoldierID)
+	log.Printf("Issued token for soldier %s", req.SoldierID)
 
-    resp := struct {
-        Token     string `json:"token"`
-        ExpiresIn int    `json:"expires_in"` // seconds
-    }{
-        Token:     token,
-        ExpiresIn: 300, // 5 minutes for example
-    }
+	resp := struct {
+		Token     string `json:"token"`
+		ExpiresIn int    `json:"expires_in"`
+	}{
+		Token:     token,
+		ExpiresIn: 300,
+	}
 
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(resp)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
 }
-
-// func (h *Handler) RenewToken(w http.ResponseWriter, r *http.Request) {
-// 	// Soldier must provide current token as Bearer Authorization to prove identity
-// 	auth := r.Header.Get("Authorization")
-// 	if auth == "" {
-// 		http.Error(w, "Missing Authorization header", http.StatusUnauthorized)
-// 		return
-// 	}
-// 	tokenStr := strings.TrimPrefix(auth, "Bearer ")
-// 	claims, err := VerifyToken(tokenStr)
-// 	if err != nil {
-// 		http.Error(w, "Invalid token", http.StatusUnauthorized)
-// 		return
-// 	}
-
-// 	newToken, err := GenerateToken(claims.SoldierID)
-// 	if err != nil {
-// 		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
-// 		return
-// 	}
-
-// 	log.Printf("Token rotation for soldier %s", claims.SoldierID) // Log rotation
-
-// 	resp := struct {
-// 		Token     string `json:"token"`
-// 		ExpiresIn int    `json:"expires_in"` // seconds
-// 	}{
-// 		Token:     newToken,
-// 		ExpiresIn: 30,
-// 	}
-// 	w.Header().Set("Content-Type", "application/json")
-// 	json.NewEncoder(w).Encode(resp)
-// }

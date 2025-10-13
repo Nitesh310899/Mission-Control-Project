@@ -2,9 +2,10 @@ package soldier
 
 import (
 	"encoding/json"
+	"log"
 	"mission-control/pkg/models"
-    "log"
 	"time"
+
 	"github.com/streadway/amqp"
 )
 
@@ -19,7 +20,7 @@ func NewQueueManager(rmqURL string) (*QueueManager, error) {
 	var conn *amqp.Connection
 	var err error
 
-	for i := 0; i < 10; i++ { // retry up to 10 times
+	for i := 0; i < 10; i++ {
 		conn, err = amqp.Dial(rmqURL)
 		if err == nil {
 			break

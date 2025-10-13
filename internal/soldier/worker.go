@@ -12,8 +12,8 @@ import (
 )
 
 type Worker struct {
-	queue       *QueueManager
-	concurrency int
+	queue        *QueueManager
+	concurrency  int
 	tokenManager *TokenManager
 }
 
@@ -24,7 +24,6 @@ func NewWorker(queue *QueueManager, concurrency int, tm *TokenManager) *Worker {
 		tokenManager: tm,
 	}
 }
-
 
 func (w *Worker) Start() error {
 	msgs, err := w.queue.ConsumeOrders()
@@ -56,19 +55,16 @@ func (w *Worker) handleMission(data []byte) {
 	}
 
 	log.Printf("[Worker] Received mission %s, publishing IN_PROGRESS", mission.ID)
-	//	err := w.queue.PublishStatus(mission.ID, models.StatusInProgress)
 	err := w.queue.PublishStatusWithToken(mission.ID, models.StatusInProgress, w.tokenManager.Token())
 	if err != nil {
 		log.Printf("[Worker] Failed to publish IN_PROGRESS: %v", err)
 		return
 	}
 
-	// Simulate mission execution delay 5-15 seconds
 	rand.Seed(time.Now().UnixNano())
 	delay := time.Duration(rand.Intn(11)+5) * time.Second
 	time.Sleep(delay)
 
-	// Decide outcome (90% success rate)
 	success := rand.Intn(100) < 90
 	finalStatus := models.StatusCompleted
 	if !success {
@@ -76,7 +72,6 @@ func (w *Worker) handleMission(data []byte) {
 	}
 	log.Printf("[Worker] Mission %s completed with status %s", mission.ID, finalStatus)
 
-	//err = w.queue.PublishStatus(mission.ID, finalStatus)
 	err = w.queue.PublishStatusWithToken(mission.ID, finalStatus, w.tokenManager.Token())
 	if err != nil {
 		log.Printf("[Worker] Failed to publish final status: %v", err)

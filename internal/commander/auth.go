@@ -14,7 +14,6 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-// GenerateToken generates a token valid for 30 seconds
 func GenerateToken(soldierID string) (string, error) {
 	claims := Claims{
 		SoldierID: soldierID,
@@ -28,7 +27,6 @@ func GenerateToken(soldierID string) (string, error) {
 	return token.SignedString(hmacSecret)
 }
 
-// VerifyToken parses and validates token, returns claims if valid
 func VerifyToken(tokenStr string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {

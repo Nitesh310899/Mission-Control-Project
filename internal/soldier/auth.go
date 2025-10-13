@@ -2,14 +2,14 @@ package soldier
 
 import (
 	"bytes"
-    "encoding/json"
-    "errors"
-    "fmt"
-    "io/ioutil"
-    "log"
-    "net/http"
-    "sync"
-    "time"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"sync"
+	"time"
 )
 
 type TokenManager struct {
@@ -23,38 +23,36 @@ type TokenManager struct {
 	refreshCond *sync.Cond
 }
 
-// TokenResponse represents the token issuance response from Commander.
 type TokenResponse struct {
-    Token     string `json:"token"`
-    ExpiresIn int    `json:"expires_in"`
+	Token     string `json:"token"`
+	ExpiresIn int    `json:"expires_in"`
 }
 
-// GetInitialToken fetches a new token from Commander’s /tokens/issue endpoint.
 func GetInitialToken(commanderURL, soldierID string) (string, int, error) {
-    reqBody, err := json.Marshal(map[string]string{
-        "soldier_id": soldierID,
-    })
-    if err != nil {
-        return "", 0, err
-    }
+	reqBody, err := json.Marshal(map[string]string{
+		"soldier_id": soldierID,
+	})
+	if err != nil {
+		return "", 0, err
+	}
 
-    client := &http.Client{Timeout: 5 * time.Second}
-    resp, err := client.Post(fmt.Sprintf("%s/tokens/issue", commanderURL), "application/json", bytes.NewBuffer(reqBody))
-    if err != nil {
-        return "", 0, err
-    }
-    defer resp.Body.Close()
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Post(fmt.Sprintf("%s/tokens/issue", commanderURL), "application/json", bytes.NewBuffer(reqBody))
+	if err != nil {
+		return "", 0, err
+	}
+	defer resp.Body.Close()
 
-    if resp.StatusCode != http.StatusOK {
-        return "", 0, fmt.Errorf("token issuance failed with status %d", resp.StatusCode)
-    }
+	if resp.StatusCode != http.StatusOK {
+		return "", 0, fmt.Errorf("token issuance failed with status %d", resp.StatusCode)
+	}
 
-    var tokenResp TokenResponse
-    if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
-        return "", 0, err
-    }
+	var tokenResp TokenResponse
+	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
+		return "", 0, err
+	}
 
-    return tokenResp.Token, tokenResp.ExpiresIn, nil
+	return tokenResp.Token, tokenResp.ExpiresIn, nil
 }
 func NewTokenManager(soldierID, renewURL string) *TokenManager {
 	tm := &TokenManager{
@@ -87,7 +85,7 @@ func (tm *TokenManager) autoRefresh() {
 
 	for {
 		tm.mu.Lock()
-		waitDuration := time.Until(tm.expiry.Add(-5 * time.Second)) // 5 seconds before expiry
+		waitDuration := time.Until(tm.expiry.Add(-5 * time.Second))
 		if waitDuration < 0 {
 			waitDuration = 0
 		}
@@ -105,7 +103,7 @@ func (tm *TokenManager) autoRefresh() {
 			}
 		} else {
 			log.Printf("[TokenManager] Token rotated successfully")
-			backoff = 5 * time.Second // reset backoff on success
+			backoff = 5 * time.Second
 		}
 	}
 }
@@ -166,78 +164,3 @@ func (tm *TokenManager) refreshToken() error {
 
 	return nil
 }
-
-
-// func (tm *TokenManager) autoRefresh() {
-// 	for {
-// 		tm.mu.Lock()
-// 		waitDuration := time.Until(tm.expiry.Add(-5 * time.Second)) // refresh 5 sec before expiry
-// 		if waitDuration < 0 {
-// 			waitDuration = 0
-// 		}
-// 		tm.mu.Unlock()
-
-// 		time.Sleep(waitDuration)
-
-// 		if err := tm.refreshToken(); err != nil {
-// 			log.Printf("[TokenManager] Token refresh failed: %v", err)
-// 			time.Sleep(5 * time.Second) // backoff retry
-// 		} else {
-// 			log.Printf("[TokenManager] Token rotated successfully")
-// 		}
-// 	}
-// }
-
-// func (tm *TokenManager) refreshToken() error {
-// 	tm.mu.Lock()
-// 	if tm.refreshing {
-// 		tm.refreshCond.Wait()
-// 		tm.mu.Unlock()
-// 		return nil
-// 	}
-// 	tm.refreshing = true
-// 	tm.mu.Unlock()
-
-// 	defer func() {
-// 		tm.mu.Lock()
-// 		tm.refreshing = false
-// 		tm.refreshCond.Broadcast()
-// 		tm.mu.Unlock()
-// 	}()
-
-// 	req, err := http.NewRequest("POST", tm.renewURL, nil)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	tm.mu.RLock()
-// 	req.Header.Set("Authorization", "Bearer "+tm.token)
-// 	tm.mu.RUnlock()
-
-// 	resp, err := tm.client.Do(req)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	defer resp.Body.Close()
-// 	if resp.StatusCode != http.StatusOK {
-// 		return errors.New("renew token: unauthorized or error response")
-// 	}
-
-// 	body, err := ioutil.ReadAll(resp.Body)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	var result struct {
-// 		Token     string `json:"token"`
-// 		ExpiresIn int    `json:"expires_in"`
-// 	}
-// 	if err := json.Unmarshal(body, &result); err != nil {
-// 		return err
-// 	}
-
-// 	tm.mu.Lock()
-// 	tm.token = result.Token
-// 	tm.expiry = time.Now().Add(time.Duration(result.ExpiresIn) * time.Second)
-// 	tm.mu.Unlock()
-
-// 	return nil
-// }
