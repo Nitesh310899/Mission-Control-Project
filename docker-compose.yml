@@ -4,18 +4,25 @@ services:
   rabbitmq:
     image: rabbitmq:3-management
     ports:
-      - "5672:5672"       # AMQP
-      - "15672:15672"     # Management UI
+      - "5672:5672"     # AMQP
+      - "15672:15672"   # Management UI
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   commander:
     build:
       context: .
       dockerfile: Dockerfile.commander
     depends_on:
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
     environment:
       - PORT=8080
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
@@ -27,11 +34,13 @@ services:
       context: .
       dockerfile: Dockerfile.soldier
     depends_on:
-      - rabbitmq
-      - commander
+      rabbitmq:
+        condition: service_healthy
+      commander:
+        condition: service_started
     environment:
       - CONCURRENCY=5
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
-      - INITIAL_TOKEN=<your-initial-token-here>       # Replace with actual token or use secret management
+      - INITIAL_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzb2xkaWVyX2lkIjoic29sZGllci0xIiwic3ViIjoic29sZGllci0xIiwiZXhwIjoxNzYwMzY3MzExLCJpYXQiOjE3NjAzNjQzMTF9.sg2QJvH7TUu2mCNwNoqwLHgs0Sdz_pAkCNhjgI1l4G8
       - SOLDIER_ID=soldier-1
       - TOKEN_RENEW_URL=http://commander:8080/tokens/renew

@@ -19,7 +19,7 @@ func GenerateToken(soldierID string) (string, error) {
 	claims := Claims{
 		SoldierID: soldierID,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(30 * time.Second)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(50 * time.Minute)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			Subject:   soldierID,
 		},

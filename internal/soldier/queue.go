@@ -3,7 +3,8 @@ package soldier
 import (
 	"encoding/json"
 	"mission-control/pkg/models"
-
+    "log"
+	"time"
 	"github.com/streadway/amqp"
 )
 
@@ -15,20 +16,34 @@ type QueueManager struct {
 }
 
 func NewQueueManager(rmqURL string) (*QueueManager, error) {
-	conn, err := amqp.Dial(rmqURL)
-	if err != nil {
+	var conn *amqp.Connection
+	var err error
+
+	for i := 0; i < 10; i++ { // retry up to 10 times
+		conn, err = amqp.Dial(rmqURL)
+		if err == nil {
+			break
+		}
+		log.Printf("Waiting for RabbitMQ to be ready... retry %d/10: %v", i+1, err)
+		time.Sleep(3 * time.Second)
+	}
+	if conn == nil {
 		return nil, err
 	}
+
 	ch, err := conn.Channel()
 	if err != nil {
+		conn.Close()
 		return nil, err
 	}
 	ordersQ, err := ch.QueueDeclare("orders_queue", true, false, false, false, nil)
 	if err != nil {
+		conn.Close()
 		return nil, err
 	}
 	statusQ, err := ch.QueueDeclare("status_queue", true, false, false, false, nil)
 	if err != nil {
+		conn.Close()
 		return nil, err
 	}
 	return &QueueManager{

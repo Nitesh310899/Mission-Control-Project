@@ -14,14 +14,17 @@ import (
 type Worker struct {
 	queue       *QueueManager
 	concurrency int
+	tokenManager *TokenManager
 }
 
-func NewWorker(q *QueueManager, concurrency int) *Worker {
+func NewWorker(queue *QueueManager, concurrency int, tm *TokenManager) *Worker {
 	return &Worker{
-		queue:       q,
-		concurrency: concurrency,
+		queue:        queue,
+		concurrency:  concurrency,
+		tokenManager: tm,
 	}
 }
+
 
 func (w *Worker) Start() error {
 	msgs, err := w.queue.ConsumeOrders()

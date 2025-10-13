@@ -61,22 +61,28 @@ func (h *Handler) GetMissionStatus(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
 }
+
 func (h *Handler) RenewToken(w http.ResponseWriter, r *http.Request) {
 	// Soldier must provide current token as Bearer Authorization to prove identity
 	auth := r.Header.Get("Authorization")
 	if auth == "" {
+		log.Printf("[RenewToken] Missing Authorization header")
 		http.Error(w, "Missing Authorization header", http.StatusUnauthorized)
 		return
 	}
 	tokenStr := strings.TrimPrefix(auth, "Bearer ")
+	log.Printf("[RenewToken] Received token for renewal: %s", tokenStr)
+
 	claims, err := VerifyToken(tokenStr)
 	if err != nil {
+		log.Printf("[RenewToken] Token verification failed: %v", err)
 		http.Error(w, "Invalid token", http.StatusUnauthorized)
 		return
 	}
 
 	newToken, err := GenerateToken(claims.SoldierID)
 	if err != nil {
+		log.Printf("[RenewToken] Failed to generate new token: %v", err)
 		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
 		return
 	}
@@ -93,3 +99,36 @@ func (h *Handler) RenewToken(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
 }
+
+// func (h *Handler) RenewToken(w http.ResponseWriter, r *http.Request) {
+// 	// Soldier must provide current token as Bearer Authorization to prove identity
+// 	auth := r.Header.Get("Authorization")
+// 	if auth == "" {
+// 		http.Error(w, "Missing Authorization header", http.StatusUnauthorized)
+// 		return
+// 	}
+// 	tokenStr := strings.TrimPrefix(auth, "Bearer ")
+// 	claims, err := VerifyToken(tokenStr)
+// 	if err != nil {
+// 		http.Error(w, "Invalid token", http.StatusUnauthorized)
+// 		return
+// 	}
+
+// 	newToken, err := GenerateToken(claims.SoldierID)
+// 	if err != nil {
+// 		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+// 		return
+// 	}
+
+// 	log.Printf("Token rotation for soldier %s", claims.SoldierID) // Log rotation
+
+// 	resp := struct {
+// 		Token     string `json:"token"`
+// 		ExpiresIn int    `json:"expires_in"` // seconds
+// 	}{
+// 		Token:     newToken,
+// 		ExpiresIn: 30,
+// 	}
+// 	w.Header().Set("Content-Type", "application/json")
+// 	json.NewEncoder(w).Encode(resp)
+// }

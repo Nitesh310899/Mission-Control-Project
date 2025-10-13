@@ -43,6 +43,7 @@ func main() {
 
 	tokenManager := soldier.NewTokenManager(soldierID, renewURL)
 	tokenManager.Start(initialToken, 30) // assuming 30 seconds expiry for initial token
+	
 
 	// Create and start the worker with token manager
 	worker := soldier.NewWorker(queue, concurrency, tokenManager)
