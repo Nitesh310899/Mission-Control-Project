@@ -72,3 +72,33 @@ docker-compose down
 - Monitor logs for mission status and token renewals.
 
 ---
+
+## System Design Overview
+
+- **Commander Service:**  
+  Issues missions, manages token-based authentication, and communicates via RabbitMQ queues.
+
+- **Soldier Service:**  
+  Polls missions, executes them asynchronously, sends status updates, and refreshes authentication tokens automatically.
+
+- **RabbitMQ:**  
+  Acts as the central message hub enabling secure, asynchronous, one-way communication between Commander and Soldiers.
+
+- **Authentication:**  
+  Utilizes short-lived JWT tokens with automatic rotation to ensure secure communication.
+
+- **Deployment:**  
+  Both services and RabbitMQ are containerized using Docker and orchestrated with Docker Compose for easy setup and scalability.
+
+---
+
+## Future Improvements
+
+- Add more unit tests for different parts of the system to improve reliability.  
+- Move current setup values to configuration files (YAML/TOML) for easier updates.  
+- Add logging and monitoring integration with Prometheus and Grafana.  
+- Store mission data in a persistent database instead of in-memory storage.  
+- Enhance security by using stronger token methods or implementing mTLS authentication.  
+- Implement a CI/CD pipeline for automated build, testing, and deployment.  
+- Improve error handling and add alerting for production readiness.
+
